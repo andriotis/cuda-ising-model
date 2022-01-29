@@ -1,14 +1,20 @@
+#include <stdio.h>
+
 #include "v1.h"
 #include "utils.h"
 
 int *get_v1(int *G, int n, int k) {
 
-    int *gpu_G, *gpu_P, *gpu_O;
-    cudaMalloc((void **)&gpu_G, n * n * sizeof(int));
+    int *I;
+    allocate_model(&I, n);
+    copy_model(G, I, n);
+
+    int *gpu_I, *gpu_P, *gpu_O;
+    cudaMalloc((void **)&gpu_I, n * n * sizeof(int));
     cudaMalloc((void **)&gpu_P, (n + 2) * (n + 2) * sizeof(int));
     cudaMalloc((void **)&gpu_O, n * n * sizeof(int));
 
-    cudaMemcpy(gpu_G, G, n * n * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(gpu_I, I, n * n * sizeof(int), cudaMemcpyHostToDevice);
 
     int block_size = 32;
     dim3 block_dim = dim3(block_size, block_size);
@@ -17,14 +23,14 @@ int *get_v1(int *G, int n, int k) {
     dim3 grid_dim = dim3(grid_size, grid_size);
 
     for (int step = 0; step < k; step++) {
-        pad_v1<<<grid_dim, block_dim>>>(gpu_P, gpu_G, n);
+        pad_v1<<<grid_dim, block_dim>>>(gpu_P, gpu_I, n);
         update_v1<<<grid_dim, block_dim>>>(gpu_P, gpu_O, n);
-        swap(&gpu_G, &gpu_O);
+        swap(&gpu_I, &gpu_O);
     }
 
-    cudaMemcpy(G, gpu_G, n * n * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(I, gpu_I, n * n * sizeof(int), cudaMemcpyDeviceToHost);
 
-    return G;
+    return I;
 }
 
 __global__ void pad_v1(int *P, int *G, int n) {

@@ -1,17 +1,22 @@
+#include <stdio.h>
+
 #include "v0.h"
 #include "utils.h"
 
 int *get_v0(int *G, int n, int k) {
-    int *P, *O;
+    int *I, *P, *O;
+    allocate_model(&I, n);
     allocate_model(&P, n + 2);
     allocate_model(&O, n);
 
+    copy_model(G, I, n);
+
     for (int step = 0; step < k; step++) {
-        pad_v0(P, G, n);
+        pad_v0(P, I, n);
         update_v0(P, O, n);
-        swap(&G, &O);
+        swap(&I, &O);
     }
-    return G;
+    return I;
 }
 
 void pad_v0(int *P, int *G, int n) {

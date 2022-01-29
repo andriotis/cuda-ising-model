@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "v0.h"
 #include "v1.h"
+#include "v2.h"
 
 int main(int argc, char *argv[]) {
 
@@ -19,6 +20,13 @@ int main(int argc, char *argv[]) {
     int *v1;
     allocate_model(&v1, n);
     v1 = get_v1(G, n, k);
+
+    int *v2;
+    allocate_model(&v2, n);
+    v2 = get_v2(G, n, 3, k);
+
+    check_equal(v0, v1, n);
+    check_equal(v0, v2, n);
 
     return 0;
 }

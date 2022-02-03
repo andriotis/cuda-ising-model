@@ -1,10 +1,9 @@
 #include <stdio.h>
-
-#include "v2.h"
-#include "math.h"
+#include "parallel.h"
 #include "utils.h"
+#include "math.h"
 
-int *get_v2(int *G, int n, int b, int k) {
+int *parallel_ising(int *G, int n, int b, int k) {
     int *I;
     allocate_model(&I, n);
     copy_model(G, I, n);
@@ -20,8 +19,8 @@ int *get_v2(int *G, int n, int b, int k) {
     dim3 grid_dim = dim3(ceil(((float)n)/b), ceil(((float)n)/b));
 
     for (int step = 0; step < k; step++) {
-        pad_v2<<<grid_dim, block_dim>>>(gpu_P, gpu_I, n, b);
-        update_v2<<<grid_dim, block_dim>>>(gpu_P, gpu_O, n, b);
+        parallel_pad<<<grid_dim, block_dim>>>(gpu_P, gpu_I, n, b);
+        parallel_update<<<grid_dim, block_dim>>>(gpu_P, gpu_O, n, b);
         swap(&gpu_I, &gpu_O);
     }
 
@@ -30,7 +29,7 @@ int *get_v2(int *G, int n, int b, int k) {
     return I;
 }
 
-__global__ void pad_v2(int *P, int *G, int n, int b) {
+__global__ void parallel_pad(int *P, int *G, int n, int b) {
 
     int start_row = blockIdx.y * b;
     int end_row = start_row + b;
@@ -54,7 +53,7 @@ __global__ void pad_v2(int *P, int *G, int n, int b) {
     }
 }
 
-__global__ void update_v2(int *P, int *O, int n, int b) {
+__global__ void parallel_update(int *P, int *O, int n, int b) {
 
     int start_row = blockIdx.y * b;
     int end_row = start_row + b;
@@ -64,22 +63,18 @@ __global__ void update_v2(int *P, int *O, int n, int b) {
     for (int row = start_row; row < end_row; row++) {
         for (int col = start_col; col < end_col; col++) {
             if (row < n && col < n) {
-                moment_v2(P, O, row + 1, col + 1, n);
+                O[n * row + col] = parallel_moment(P, row + 1, col + 1, n + 2);
             }
         }
     }
 }
 
-__device__ void moment_v2(int *P, int *O, int i, int j, int n) {
+__device__ int parallel_moment(int *P, int i, int j, int n) {
+    int moment = P[n * (i - 1) + j]
+               + P[n * i + (j - 1)]
+               + P[n * i + j]
+               + P[n * (i + 1) + j]
+               + P[n * i + (j + 1)];
 
-    int moment = P[(n + 2) * (i - 1) + j]
-               + P[(n + 2) * i + (j - 1)]
-               + P[(n + 2) * i + j]
-               + P[(n + 2) * (i + 1) + j]
-               + P[(n + 2) * i + (j + 1)];
-
-    if (moment > 0)
-        O[n * (i - 1) + (j - 1)] = 1;
-    else
-        O[n * (i - 1) + (j - 1)] = -1;
+    return (moment > 0) ? 1 : -1;
 }

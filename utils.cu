@@ -44,9 +44,13 @@ void swap(int **G1, int **G2) {
 }
 
 void check_equal(int *G1, int *G2, int N) {
+    int count = 0;
     for (int i = 0; i < N; i++)
         for (int j = 0; j < N; j++)
             if (G1[N * i + j] != G2[N * i + j])
-                printf("[%d][%d] are different!\n", i, j);
-    printf("Matrices are equal!\n");
+                count++;
+    if (count)
+        printf("DIFFERENT!\n");
+    else
+        printf("EQUAL!\n");
 }
